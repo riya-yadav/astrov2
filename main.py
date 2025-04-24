@@ -6,7 +6,21 @@ import swisseph as swe
 import pytz
 
 app = Flask(__name__)
-swe.set_ephe_path('.')
+swe.set_ephe_path(".")
+swe.set_sid_mode(swe.SIDM_LAHIRI)
+
+ZODIAC_SIGNS = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+]
+
+def get_sidereal_position(jd, planet):
+    lon, _ = swe.calc_ut(jd, planet, flag=swe.FLG_SIDEREAL)
+    return lon
+
+def get_house_number(lagna_deg, planet_deg):
+    relative_deg = (planet_deg - lagna_deg) % 360
+    return int(relative_deg // 30) + 1
 
 def get_astrology_data(name, dob, tob, place):
     try:
@@ -16,49 +30,70 @@ def get_astrology_data(name, dob, tob, place):
             return {"error": "Invalid place name. Try a nearby city."}
 
         lat, lon = location.latitude, location.longitude
-        tz_finder = TimezoneFinder()
-        timezone_str = tz_finder.timezone_at(lat=lat, lng=lon)
-        if timezone_str is None:
-            return {"error": "Could not detect timezone. Try a larger city name."}
+        tf = TimezoneFinder()
+        timezone_str = tf.timezone_at(lat=lat, lng=lon)
+        if not timezone_str:
+            return {"error": "Timezone not found."}
 
         tz = pytz.timezone(timezone_str)
-        dt_obj = tz.localize(datetime.strptime(f"{dob} {tob}", "%Y-%m-%d %H:%M"))
+        dt = tz.localize(datetime.strptime(f"{dob} {tob}", "%Y-%m-%d %H:%M"))
+        jd = swe.julday(dt.year, dt.month, dt.day, dt.hour + dt.minute / 60.0)
 
-        jd = swe.julday(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour + dt_obj.minute / 60)
-        planets = {}
-        for planet in [swe.SUN, swe.MOON, swe.MARS, swe.MERCURY, swe.JUPITER, swe.VENUS, swe.SATURN]:
-            lon = swe.calc_ut(jd, planet)[0][0]
-            planets[swe.get_planet_name(planet)] = lon
+        # Ascendant and sign
+        ascendant = swe.houses(jd, lat, lon)[0][0]
+        ascendant_sign_index = int(ascendant // 30)
+        ascendant_sign = ZODIAC_SIGNS[ascendant_sign_index]
 
-        houses = swe.houses(jd, lat, lon)
-        ascendant = houses[0][0]
+        # Planet positions and houses
+        planet_codes = {
+            "Sun": swe.SUN,
+            "Moon": swe.MOON,
+            "Mars": swe.MARS,
+            "Mercury": swe.MERCURY,
+            "Jupiter": swe.JUPITER,
+            "Venus": swe.VENUS,
+            "Saturn": swe.SATURN,
+            "Rahu": swe.MEAN_NODE
+        }
 
-        summary = f"""
-        🔮 Name: {name}
-        🪐 Place: {place}
-        ☀️ Sun: {planets['Sun']:.2f}°
-        🌙 Moon: {planets['Moon']:.2f}°
-        🪐 Lagna (Ascendant): {ascendant:.2f}°
-        🛕 More Graha positions: {planets}
-        """
-        return {"summary": summary, "planets": planets, "ascendant": ascendant}
-    
+        positions = {}
+        houses = {}
+
+        for name, code in planet_codes.items():
+            deg = get_sidereal_position(jd, code)
+            positions[name] = round(deg, 2)
+            houses[name] = get_house_number(ascendant, deg)
+
+        # Add Ketu
+        ketu_deg = (positions["Rahu"] + 180) % 360
+        positions["Ketu"] = round(ketu_deg, 2)
+        houses["Ketu"] = get_house_number(ascendant, ketu_deg)
+
+        return {
+            "name": name,
+            "place": place,
+            "ascendant": round(ascendant, 2),
+            "ascendant_sign": ascendant_sign,
+            "planet_positions": positions,
+            "planet_houses": houses
+        }
+
     except Exception as e:
-        return {"error": f"Server crashed: {str(e)}"}
+        return {"error": str(e)}
 
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.json
-    result = get_astrology_data(
+    return jsonify(get_astrology_data(
         data.get("name", ""),
         data.get("dob", ""),
         data.get("tob", ""),
         data.get("place", "")
-    )
-    return jsonify(result)
+    ))
 
 @app.route("/")
 def home():
-    return "🕉️ Pandit Ji API is LIVE!"
+    return "🕉️ Vedic Astrology API is LIVE!"
 
-app.run(host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
