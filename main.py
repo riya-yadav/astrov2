@@ -15,8 +15,8 @@ ZODIAC_SIGNS = [
 ]
 
 def get_sidereal_position(jd, planet):
-    lon, _ = swe.calc(jd, planet)  # ✅ corrected to use swe.calc for sidereal
-    return lon
+    lon_tuple = swe.calc(jd, planet)
+    return lon_tuple[0]  # ✅ ensure we extract float
 
 def get_house_number(lagna_deg, planet_deg):
     relative_deg = (planet_deg - lagna_deg) % 360
