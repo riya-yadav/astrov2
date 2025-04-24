@@ -15,8 +15,7 @@ ZODIAC_SIGNS = [
 ]
 
 def get_sidereal_position(jd, planet):
-    lon_tuple = swe.calc(jd, planet)
-    return lon_tuple[0]  # ✅ ensure we extract float
+    return swe.calc(jd, planet)[0]  # ✅ Returns a float
 
 def get_house_number(lagna_deg, planet_deg):
     relative_deg = (planet_deg - lagna_deg) % 360
@@ -60,7 +59,7 @@ def get_astrology_data(name, dob, tob, place):
         houses = {}
 
         for name, code in planet_codes.items():
-            deg = get_sidereal_position(jd, code)
+            deg = get_sidereal_position(jd, code)  # Already a float
             positions[name] = round(deg, 2)
             houses[name] = get_house_number(ascendant, deg)
 
