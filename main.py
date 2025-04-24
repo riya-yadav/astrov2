@@ -27,7 +27,7 @@ def get_astrology_data(name, dob, tob, place):
         jd = swe.julday(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour + dt_obj.minute / 60)
         planets = {}
         for planet in [swe.SUN, swe.MOON, swe.MARS, swe.MERCURY, swe.JUPITER, swe.VENUS, swe.SATURN]:
-            lon, _ = swe.calc_ut(jd, planet)
+            lon = swe.calc_ut(jd, planet)[0][0]
             planets[swe.get_planet_name(planet)] = lon
 
         houses = swe.houses(jd, lat, lon)
