@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from timezonefinder import TimezoneFinder
 from geopy.geocoders import Nominatim
 from datetime import datetime
@@ -6,6 +7,7 @@ import swisseph as swe
 import pytz
 
 app = Flask(__name__)
+CORS(app)
 swe.set_ephe_path(".")
 swe.set_sid_mode(swe.SIDM_LAHIRI)  # Lahiri ayanamsha for Vedic astrology
 
@@ -42,7 +44,7 @@ def get_astrology_data(name, dob, tob, place):
         dt = datetime.strptime(f"{dob} {tob}", "%Y-%m-%d %H:%M")
         dt = tz.localize(dt)
         dt_ut = dt.astimezone(pytz.utc)
-        
+
         # Julian day calculation
         jd = swe.julday(
             dt_ut.year, 
@@ -52,7 +54,7 @@ def get_astrology_data(name, dob, tob, place):
         )
 
         # Calculate Ascendant and zodiac sign
-        cusps, ascmc = swe.houses(jd, lat, lon)  # Get ascendant
+        cusps, ascmc = swe.houses(jd, lat, lon)
         ascendant = float(ascmc[0])
         ascendant_sign_idx = int(ascendant // 30)
         ascendant_sign = ZODIAC_SIGNS[ascendant_sign_idx]
