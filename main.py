@@ -6,7 +6,6 @@ import swisseph as swe
 import pytz
 
 app = Flask(__name__)
-
 swe.set_ephe_path(".")
 swe.set_sid_mode(swe.SIDM_LAHIRI)
 
@@ -17,7 +16,7 @@ ZODIAC_SIGNS = [
 
 def get_sidereal_position(jd, planet):
     lon_tuple = swe.calc(jd, planet)
-    return float(lon_tuple[0])  # Correct: only longitude
+    return float(lon_tuple[0])
 
 def get_house_number(lagna_deg, planet_deg):
     relative_deg = (planet_deg - lagna_deg) % 360
@@ -42,8 +41,10 @@ def get_astrology_data(name, dob, tob, place):
         dt_ut = dt.astimezone(pytz.utc)
         jd = swe.julday(dt_ut.year, dt_ut.month, dt_ut.day, dt_ut.hour + dt_ut.minute / 60.0 + dt_ut.second / 3600.0)
 
+        # Calculate Ascendant safely
         cusps, ascmc = swe.houses(jd, lat, lon)
-        ascendant = float(ascmc[0])  # Correct: ascmc[0] is Ascendant
+        ascendant_raw = ascmc[0]
+        ascendant = float(ascendant_raw[0]) if isinstance(ascendant_raw, tuple) else float(ascendant_raw)
         ascendant_sign_index = int(ascendant // 30)
         ascendant_sign = ZODIAC_SIGNS[ascendant_sign_index]
 
