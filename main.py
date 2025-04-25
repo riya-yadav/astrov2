@@ -10,12 +10,12 @@ swe.set_ephe_path(".")
 swe.set_sid_mode(swe.SIDM_LAHIRI)
 
 ZODIAC_SIGNS = [
-    "Aries", " "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
 
 def get_sidereal_position(jd, planet):
-    return swe.calc(jd, planet)[0]  # ✅ Safe float extraction
+    return swe.calc(jd, planet)[0]  # ✅ Extract float from tuple
 
 def get_house_number(lagna_deg, planet_deg):
     relative_deg = (planet_deg - lagna_deg) % 360
