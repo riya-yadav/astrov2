@@ -15,8 +15,9 @@ ZODIAC_SIGNS = [
 ]
 
 def get_sidereal_position(jd, planet):
-    lon_tuple = swe.calc(jd, planet)
-    return float(lon_tuple[0])
+    # Correctly unpack result and flag from swe.calc
+    result, _ = swe.calc(jd, planet)
+    return float(result[0])  # Extract longitude from result list
 
 def get_house_number(lagna_deg, planet_deg):
     relative_deg = (planet_deg - lagna_deg) % 360
@@ -41,10 +42,9 @@ def get_astrology_data(name, dob, tob, place):
         dt_ut = dt.astimezone(pytz.utc)
         jd = swe.julday(dt_ut.year, dt_ut.month, dt_ut.day, dt_ut.hour + dt_ut.minute / 60.0 + dt_ut.second / 3600.0)
 
-        # Calculate Ascendant safely
+        # Calculate Ascendant
         cusps, ascmc = swe.houses(jd, lat, lon)
-        ascendant_raw = ascmc[0]
-        ascendant = float(ascendant_raw[0]) if isinstance(ascendant_raw, tuple) else float(ascendant_raw)
+        ascendant = float(ascmc[0])  # Directly convert to float (no tuple check needed)
         ascendant_sign_index = int(ascendant // 30)
         ascendant_sign = ZODIAC_SIGNS[ascendant_sign_index]
 
